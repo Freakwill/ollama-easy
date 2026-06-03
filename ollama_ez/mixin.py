@@ -87,9 +87,9 @@ class ChatMixin:
             messages.append(message)
             tools = self.tool_reply(messages)
             if tools:
-                _execute = print
-                result = _execute(tools)
-                message = {"role": "system", "content": f"Print the result in a pretty format: {result}."}
+                # result = _execute(tools)  # implemented in feature
+                result = "A test string"
+                message = {"role": "system", "content": f"Show the result in a pretty format according to the context: {result}."}
                 assistant_reply = self._reply(self.history + messages + [message], max_retries=max_retries)
             else:
                 assistant_reply = self._reply(self.history + messages, max_retries=max_retries)
@@ -117,8 +117,7 @@ class ChatMixin:
         if so, specify which tools and list them in the correct order as a single comma-separated line at the end of the reply (e.g., cmd1, cmd2); 
         otherwise, simply return none."""
         }
-        messages.append(message)
-        s = self._reply(self.history + messages)
+        s = self._reply(self.history + messages + [message])
         if s.lower().startswith('none'):
             return []
         else:
