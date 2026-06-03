@@ -9,7 +9,7 @@ from .secret import api_key
 
 default_description = 'You are a very intelligent agent'
 
-cloude_models = ['deepseek-v3.1:671b-cloud', 'gpt-oss:120b', 'ministral-3:8b-cloud', 'glm-5:cloud',
+cloude_models = ['deepseek-v3.1:671b-cloud', 'gpt-oss:120b', 'gpt-oss:20b', 'ministral-3:8b-cloud', 'glm-5:cloud',
 'kimi-k2.5:cloud', 'qwen3-coder-next:cloud', 'rnj-1:8b-cloud', 'minimax-m2.1:cloud']
 
 
@@ -38,9 +38,11 @@ class OllamaChat(ChatMixin, Client):
         !cmd *args: run command `cmd(obj, *args)`
     """
 
-    default_model = 'gpt-oss:120b'
-    default_description = "You are a very intelligent agent"
-
+    default_model = 'gpt-oss:20b'
+    default_description = """
+    As a very intelligent agent, answer questions concisely and directly, without focusing too much on the "general-specific-general" structure — just give the answer directly.
+    When writing code, usually just provide the code (comments in the code are fine).**
+    """
     def __init__(self, description=None, history=[], name='Assistant', model='gpt-oss:120b', api_key=api_key, *args, **kwargs):
         if api_key:
             super().__init__(host='https://ollama.com',

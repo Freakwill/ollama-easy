@@ -85,7 +85,14 @@ class ChatMixin:
         else:
             message = {"role": "user", "content": user_input}
             messages.append(message)
-            assistant_reply = self._reply(self.history + messages, max_retries=max_retries)
+            tools = self.tool_reply(messages)
+            if tools:
+                _execute = print
+                result = _execute(tools)
+                message = {"role": "system", "content": f"Print the result in a pretty format: {result}."}
+                assistant_reply = self._reply(self.history + messages + [message], max_retries=max_retries)
+            else:
+                assistant_reply = self._reply(self.history + messages, max_retries=max_retries)
             if assistant_reply is not None:
                 print(f"🤖{self.name.capitalize()}: {assistant_reply}")
 
@@ -103,5 +110,18 @@ class ChatMixin:
     @property
     def history_size(self):
         return sum(len(d["content"]) for d in self.history)
+
+    def tool_reply(self, messages=[]):
+        message = {"role": "system",
+        "content": """Please determine whether the user intends to call any tools; 
+        if so, specify which tools and list them in the correct order as a single comma-separated line at the end of the reply (e.g., cmd1, cmd2); 
+        otherwise, simply return none."""
+        }
+        messages.append(message)
+        s = self._reply(self.history + messages)
+        if s.lower().startswith('none'):
+            return []
+        else:
+            return s.split(',')
 
     
