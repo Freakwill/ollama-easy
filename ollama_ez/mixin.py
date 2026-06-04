@@ -6,6 +6,10 @@ from .commands import Commands
 MAX_LEN = 1000
 
 
+def _exec(cmd, *args):
+    return getattr(Commands, cmd)(self, *args)
+
+
 class ChatMixin:
     # Mixin for chat-bot
 
@@ -77,7 +81,7 @@ class ChatMixin:
             cmd = user_input.strip('! ')
             cmd, *args = shlex.split(cmd)
             try:
-                getattr(Commands, cmd)(self, *args)
+                _exec(cmd, *args)
             except AttributeError:
                 print(f"💻System: {cmd} is not registered yet!")
             except Exception as e:
@@ -114,7 +118,7 @@ class ChatMixin:
     def tool_reply(self, messages=[]):
         message = {"role": "system",
         "content": """Please determine whether the user intends to call any tools; 
-        if so, specify which tools and list them in the correct order as a single comma-separated line at the end of the reply (e.g., cmd1, cmd2); 
+        if so, specify which tools and list them in the correct order as a single comma-separated line at the end of the reply (e.g., cmd1(arg11, arg12), cmd2(arg21, arg22)); 
         otherwise, simply return none."""
         }
         s = self._reply(self.history + messages + [message])
