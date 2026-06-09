@@ -2,19 +2,38 @@
 
 import pathlib
 import yaml
+import types
 
 
-history_file = pathlib.Path('history.yaml')
+HISTORY = pathlib.Path('history.yaml')
 
 
-from functools import wraps
+from functools import update_wrapper
 
-def cmdmethod(f):
-    @classmethod
-    @wraps(f)
-    def wrapper(cls, *args):
-        return f(cls.obj, *args)
-    return wrapper
+
+class cmdmethod:
+    """
+    类似 classmethod，但调用时自动传 cls.obj 给原函数。
+    """
+
+    is_cmdmethod = True
+
+    def __init__(self, func):
+        self.func = func
+        self.as_tool = True
+        update_wrapper(self, func)
+
+    def __get__(self, instance, owner):
+        def bound(*args, **kwargs):
+            return self.func(owner.obj, *args, **kwargs)
+
+        update_wrapper(bound, self.func)
+
+        bound.as_tool = True
+        bound.is_cmdmethod = True
+        bound.__cmdmethod__ = self
+
+        return types.MethodType(bound, owner)
 
 
 class Commands:
@@ -37,36 +56,40 @@ class Commands:
         obj.description = obj.__class__.default_description
         print('💻System: Reset the settings (except the history).')
 
-    @classmethod
-    def clear(cls):
+    @cmdmethod
+    def clear(obj):
         """Clear the history
         """
         obj.history = []
         print(f'💻System: The history is cleared.')
 
     @cmdmethod
-    def pop(obj, k):
+    def pop(obj, k:int):
+        """To pop the k-th message in history.
+        """
         obj.history.pop(k)
         print(f'💻System: The k-th message in history is poped.')
 
     @cmdmethod
     def save(obj):
-        if not history_file.exists():     
-            print("💻System: The history is stored in {history_file}!")
-            history_file.write_text(yaml.dump(obj.history, allow_unicode=True))
+        """save history in `history_file`
+        """
+        if not HISTORY.exists():     
+            print("💻System: The history is stored in {HISTORY}!")
+            HISTORY.write_text(yaml.dump(obj.history, allow_unicode=True))
         else:
-            print(f"💻System: {history_file} is available! The history will not be stored")
+            print(f"💻System: {HISTORY} is available! The history will not be stored")
 
     @cmdmethod
     def load(obj):
-        if history_file.exists():
-            print(f'💻System: The history is loaded from {history_file}!')
-            obj.history = yaml.safe_load(str(history_file))
+        if HISTORY.exists():
+            print(f'💻System: The history is loaded from {HISTORY}!')
+            obj.history = yaml.safe_load(str(HISTORY))
         else:
             print('💻System: No history is loaded!')
 
     @cmdmethod
-    def ollama(obj, cmd, *args):
+    def ollama(obj, cmd:str, *args):
         import ollama
         if cmd == 'search':
             cmd = 'web_search'
@@ -84,4 +107,5 @@ class Commands:
             _name = name or f.__name__
             setattr(cls, _name, f)
         return dec
+
 

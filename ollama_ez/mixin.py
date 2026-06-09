@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
+
 import shlex
+import yaml
+
 from .commands import Commands
 
 MAX_LEN = 1000
@@ -31,6 +34,17 @@ class ChatMixin:
 
     def init(self):
         print(f'💻System: The chat has started. Agent `{self.name.capitalize()}` will serve you.')
+        self.load_commands()
+
+    def load_commands(self):
+        from .utils import *
+
+        # with open('commands.yaml', 'w') as f:
+        #     data = {name: get_func_info(method) for name, method in get_classmethods(Commands).items()}
+        #     yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
+
+        data = {name: get_func_info(method) for name, method in get_classmethods(Commands).items()}
+        self.commands_yaml = yaml.dump(data, allow_unicode=True, default_flow_style=False)
 
     def run(self, description=None):
         # To chat with AI
@@ -93,6 +107,8 @@ class ChatMixin:
             if tools:
                 # result = _execute(tools)  # implemented in feature
                 result = "A test string"
+                for tool in tools:
+                    _exec(tool['function'], *tool['args'])
                 message = {"role": "system", "content": f"Show the result in a pretty format according to the context: {result}."}
                 assistant_reply = self._reply(self.history + messages + [message], max_retries=max_retries)
             else:
@@ -117,14 +133,27 @@ class ChatMixin:
 
     def tool_reply(self, messages=[]):
         message = {"role": "system",
-        "content": """Please determine whether the user intends to call any tools; 
-        if so, specify which tools and list them in the correct order as a single comma-separated line at the end of the reply (e.g., cmd1(arg11, arg12), cmd2(arg21, arg22)); 
-        otherwise, simply return none."""
+        "content": f"""Based on the user's prompt and the content of the file {{self.commands_yaml}}. Please determine whether the user intends to call any tools; 
+        if so, specify which tools and list them in the correct order in yaml format, see following (only return yaml string); 
+        if not, simply return none.
+        
+        ```yaml
+        - abstract: the use call tools sequentially: cmd1, cmd2
+        - function: cmd1
+          args: 
+            - !!str a
+            - !!str b
+        - function: cmd2
+          args:
+            - !!int c
+            - !!int d
+        ```
+        """
         }
         s = self._reply(self.history + messages + [message])
         if s.lower().startswith('none'):
             return []
         else:
-            return s.split(',')
+            return yaml.safe_load(s)
 
     
